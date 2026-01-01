@@ -158,6 +158,11 @@ function encodeNumberToCulture(number) {
     const numStr = number.toString();
     const allElements = getAllTimestampElements();
     
+    // 确保至少有10个元素用于数字0-9的映射
+    if (allElements.length < 10) {
+        throw new Error('文化元素数量不足，无法编码时间戳');
+    }
+    
     const encoded = [];
     for (let i = 0; i < numStr.length; i++) {
         const digit = parseInt(numStr[i]);
