@@ -70,10 +70,11 @@ function createMapping(token) {
     const random = new SeededRandom(token);
     const allChars = [];
     
-    // 生成所有可能的字符（包括中文、英文、数字、标点）
-    for (let i = 0x4e00; i <= 0x9fa5; i += 50) {
+    // 生成常用中文字符（优化后的字符集）
+    for (let i = 0x4e00; i <= 0x4f00; i++) {
         allChars.push(String.fromCharCode(i));
     }
+    // 添加ASCII可见字符
     for (let i = 33; i <= 126; i++) {
         allChars.push(String.fromCharCode(i));
     }
@@ -140,8 +141,9 @@ function encrypt(text, token) {
     const timestamp = Date.now().toString();
     const random = new SeededRandom(token + timestamp);
     
-    // 将文本转换为Base64以保持完整性
-    const base64Text = btoa(unescape(encodeURIComponent(text)));
+    // 将文本转换为Base64以保持完整性（使用 TextEncoder 替代 deprecated unescape）
+    const utf8Bytes = new TextEncoder().encode(text);
+    const base64Text = btoa(String.fromCharCode(...utf8Bytes));
     
     // 将Base64文本分块处理
     const blockSize = 256;
@@ -233,8 +235,13 @@ function decrypt(encryptedText, token) {
         
         const base64Text = decryptedBlocks.join('');
         
-        // 从Base64解码回原始文本
-        return decodeURIComponent(escape(atob(base64Text)));
+        // 从Base64解码回原始文本（使用 TextDecoder 替代 deprecated escape）
+        const binaryString = atob(base64Text);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return new TextDecoder().decode(bytes);
     } catch (error) {
         throw new Error('解密失败：' + error.message);
     }
@@ -316,20 +323,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // 复制按钮
-    copyBtn.addEventListener('click', function() {
+    copyBtn.addEventListener('click', async function() {
         if (!outputText.value) {
             alert('没有可复制的内容');
             return;
         }
         
-        outputText.select();
-        document.execCommand('copy');
-        
-        const originalText = this.textContent;
-        this.textContent = '已复制！';
-        setTimeout(() => {
-            this.textContent = originalText;
-        }, 2000);
+        try {
+            // 使用现代 Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(outputText.value);
+            } else {
+                // 降级方案
+                outputText.select();
+                document.execCommand('copy');
+            }
+            
+            const originalText = this.textContent;
+            this.textContent = '已复制！';
+            setTimeout(() => {
+                this.textContent = originalText;
+            }, 2000);
+        } catch (err) {
+            alert('复制失败，请手动复制');
+        }
     });
     
     // 示例文本按钮
