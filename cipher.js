@@ -70,7 +70,8 @@ function createMapping(token) {
     const random = new SeededRandom(token);
     const allChars = [];
     
-    // 生成常用中文字符（优化后的字符集）
+    // 生成常用中文字符（CJK统一表意文字基本区的一个子集，共256个字符）
+    // 使用0x4e00-0x4f00范围以保持字符集大小适中并提高性能
     for (let i = 0x4e00; i <= 0x4f00; i++) {
         allChars.push(String.fromCharCode(i));
     }
@@ -82,7 +83,7 @@ function createMapping(token) {
     const shuffled = random.shuffle(allChars);
     const mapping = new Map();
     
-    // 创建字符到索引的映射
+    // 创建字节值（0-255）到字符的映射
     for (let i = 0; i < 256; i++) {
         mapping.set(i, shuffled[i % shuffled.length]);
     }
@@ -141,7 +142,8 @@ function encrypt(text, token) {
     const timestamp = Date.now().toString();
     const random = new SeededRandom(token + timestamp);
     
-    // 将文本转换为Base64以保持完整性（使用 TextEncoder 替代 deprecated unescape）
+    // 将文本转换为Base64以保持完整性
+    // 使用 TextEncoder 进行正确的 UTF-8 编码处理
     const utf8Bytes = new TextEncoder().encode(text);
     const base64Text = btoa(String.fromCharCode(...utf8Bytes));
     
@@ -235,7 +237,8 @@ function decrypt(encryptedText, token) {
         
         const base64Text = decryptedBlocks.join('');
         
-        // 从Base64解码回原始文本（使用 TextDecoder 替代 deprecated escape）
+        // 从Base64解码回原始文本
+        // 使用 TextDecoder 进行正确的 UTF-8 解码处理
         const binaryString = atob(base64Text);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
