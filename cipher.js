@@ -5,7 +5,7 @@ const HAIMEN_CULTURE = {
         '明德楼', '求真楼', '务实堂', '博学院', '笃行馆'
     ],
     history: [
-        '1903年创校', '张謇题写校名', '百年名校', '江苏省重点中学',
+        '甲子年创校', '张謇题写校名', '百年名校', '江苏省重点中学',
         '传承百年文脉', '培育时代英才', '历经沧桑岁月', '砥砺前行'
     ],
     motto: [
@@ -129,6 +129,137 @@ function generateCultureText(data, token) {
     return templates[random.nextInt(templates.length)];
 }
 
+// 获取所有文化元素的组合数组（用于数字编码）
+function getAllTimestampElements() {
+    return [
+        ...HAIMEN_CULTURE.buildings,
+        ...HAIMEN_CULTURE.history,
+        ...HAIMEN_CULTURE.motto,
+        ...HAIMEN_CULTURE.activities,
+        ...HAIMEN_CULTURE.nature
+    ];
+}
+
+// 获取所有文化元素的组合数组（用于数据编码）
+function getAllDataElements() {
+    return [
+        ...HAIMEN_CULTURE.buildings,
+        ...HAIMEN_CULTURE.history,
+        ...HAIMEN_CULTURE.motto,
+        ...HAIMEN_CULTURE.activities,
+        ...HAIMEN_CULTURE.nature,
+        ...HAIMEN_CULTURE.verbs,
+        ...HAIMEN_CULTURE.adjectives
+    ];
+}
+
+// 将数字编码为文化元素序列（用于时间戳）
+function encodeNumberToCulture(number) {
+    const numStr = number.toString();
+    const allElements = getAllTimestampElements();
+    
+    // 确保至少有10个元素用于数字0-9的映射
+    if (allElements.length < 10) {
+        throw new Error('文化元素数量不足，无法编码时间戳');
+    }
+    
+    const encoded = [];
+    for (let i = 0; i < numStr.length; i++) {
+        const digit = parseInt(numStr[i]);
+        // 每个数字(0-9)直接映射到前10个元素，保证唯一性
+        encoded.push(allElements[digit]);
+    }
+    
+    return encoded.join('、');
+}
+
+// 从文化元素序列解码数字
+function decodeCultureToNumber(cultureText) {
+    const allElements = getAllTimestampElements();
+    
+    const elements = cultureText.split('、');
+    const digits = [];
+    
+    for (const element of elements) {
+        const index = allElements.indexOf(element);
+        if (index !== -1 && index < 10) {
+            // 只取前10个元素对应的数字0-9
+            digits.push(index.toString());
+        }
+    }
+    
+    return digits.join('');
+}
+
+// 将加密字符编码为文化元素序列
+function encodeDataToCulture(data) {
+    const allElements = getAllDataElements();
+    const totalElements = allElements.length;
+    const encoded = [];
+    
+    for (let i = 0; i < data.length; i++) {
+        const charCode = data.charCodeAt(i);
+        
+        // 将字符码转换为基数表示
+        // 使用足够的位数来避免信息丢失
+        const idx1 = Math.floor(charCode / (totalElements * totalElements));
+        const idx2 = Math.floor((charCode % (totalElements * totalElements)) / totalElements);
+        const idx3 = charCode % totalElements;
+        
+        // 为了支持超出范围的字符码，使用多个三元组
+        if (idx1 >= totalElements) {
+            // 对于非常大的字符码，使用4个元素编码
+            const idx0 = Math.floor(idx1 / totalElements);
+            const idx1_mod = idx1 % totalElements;
+            encoded.push(allElements[idx0] + '、' + allElements[idx1_mod] + '、' + allElements[idx2] + '、' + allElements[idx3]);
+        } else {
+            // 使用顿号作为一个字符内的分隔符，逗号作为字符间的分隔符
+            encoded.push(allElements[idx1] + '、' + allElements[idx2] + '、' + allElements[idx3]);
+        }
+    }
+    
+    return encoded.join('，');
+}
+
+// 从文化元素序列解码数据
+function decodeCultureToData(cultureText) {
+    const allElements = getAllDataElements();
+    const totalElements = allElements.length;
+    const charGroups = cultureText.split('，');
+    const chars = [];
+    
+    for (const group of charGroups) {
+        const elements = group.split('、');
+        
+        if (elements.length === 4) {
+            // 4个元素的情况（大字符码）
+            const idx0 = allElements.indexOf(elements[0]);
+            const idx1_mod = allElements.indexOf(elements[1]);
+            const idx2 = allElements.indexOf(elements[2]);
+            const idx3 = allElements.indexOf(elements[3]);
+            
+            if (idx0 !== -1 && idx1_mod !== -1 && idx2 !== -1 && idx3 !== -1) {
+                const idx1 = idx0 * totalElements + idx1_mod;
+                const charCode = idx1 * totalElements * totalElements + idx2 * totalElements + idx3;
+                chars.push(String.fromCharCode(charCode));
+            }
+        } else if (elements.length === 3) {
+            // 3个元素的情况（正常字符码）
+            const idx1 = allElements.indexOf(elements[0]);
+            const idx2 = allElements.indexOf(elements[1]);
+            const idx3 = allElements.indexOf(elements[2]);
+            
+            if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
+                // 重建字符码
+                const charCode = idx1 * totalElements * totalElements + idx2 * totalElements + idx3;
+                chars.push(String.fromCharCode(charCode));
+            }
+        }
+    }
+    
+    return chars.join('');
+}
+
 // 加密函数
 function encrypt(text, token) {
     if (!text || !token) {
@@ -172,13 +303,17 @@ function encrypt(text, token) {
         const encryptedStr = encrypted.join('');
         const cultureText = generateCultureText(encryptedStr + blockIndex, token);
         
-        return cultureText + '【' + encryptedStr + '】';
+        // 将加密数据编码为文化元素
+        const encodedData = encodeDataToCulture(encryptedStr);
+        
+        return cultureText + '【' + encodedData + '】';
     });
     
-    // 添加时间戳标记
+    // 将时间戳编码为文化元素
+    const encodedTimestamp = encodeNumberToCulture(timestamp);
     const timestampMarker = generateCultureText(timestamp, token);
     
-    return `${timestampMarker}〖${timestamp}〗` + encryptedBlocks.join('');
+    return `${timestampMarker}〖${encodedTimestamp}〗` + encryptedBlocks.join('');
 }
 
 // 解密函数
@@ -188,16 +323,17 @@ function decrypt(encryptedText, token) {
     }
     
     try {
-        // 提取时间戳
-        const timestampMatch = encryptedText.match(/〖(\d+)〗/);
+        // 提取时间戳（现在是文化元素编码）
+        const timestampMatch = encryptedText.match(/〖([^〗]+)〗/);
         if (!timestampMatch) {
             throw new Error('无效的密文格式');
         }
         
-        const timestamp = timestampMatch[1];
+        const encodedTimestamp = timestampMatch[1];
+        const timestamp = decodeCultureToNumber(encodedTimestamp);
         const contentAfterTimestamp = encryptedText.substring(encryptedText.indexOf('〗') + 1);
         
-        // 提取所有加密块
+        // 提取所有加密块（现在包含文化元素）
         const blockRegex = /【([^】]+)】/g;
         const blocks = [];
         let match;
@@ -218,7 +354,9 @@ function decrypt(encryptedText, token) {
         }
         
         // 解密每个块
-        const decryptedBlocks = blocks.map(block => {
+        const decryptedBlocks = blocks.map(encodedBlock => {
+            // 从文化元素解码回加密字符串
+            const block = decodeCultureToData(encodedBlock);
             const decrypted = [];
             
             for (let i = 0; i < block.length; i++) {
