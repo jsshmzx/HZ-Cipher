@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海门中学文化加密系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>海门中学文化加密系统</h1>
+            <p class="subtitle">将文本加密为描述海门中学的自然语言</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="form-group">
+                    <label for="token">加密密钥（Token）</label>
+                    <input type="text" id="token" placeholder="输入您的密钥..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="inputText">原始文本 <span class="char-count" id="charCount">0/5000</span></label>
+                    <textarea id="inputText" placeholder="输入需要加密或解密的文本..." maxlength="5000"></textarea>
+                    <button class="btn-secondary" id="exampleBtn">加载示例文本</button>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" id="encryptBtn">加密</button>
+                    <button class="btn-primary" id="decryptBtn">解密</button>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <div class="form-group">
+                    <label for="outputText">输出结果</label>
+                    <textarea id="outputText" placeholder="加密或解密结果将显示在这里..." readonly></textarea>
+                    <button class="btn-secondary" id="copyBtn">复制结果</button>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>系统说明</h3>
+                <ul>
+                    <li>使用相同的token可以实现加密和解密</li>
+                    <li>支持最长5000字符的文本</li>
+                    <li>加密后的文本包含海门中学的文化元素</li>
+                    <li>包含建筑、校史、校训、活动等真实元素</li>
+                </ul>
+            </div>
+        </main>
+
+        <footer>
+            <p>海门中学 • 明德博学 • 求真务实</p>
+        </footer>
+    </div>
+
+    <script src="cipher.js"></script>
+</body>
+</html>
